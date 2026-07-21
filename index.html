@@ -100,7 +100,10 @@
 
         document.getElementById('resMissingCV').innerHTML = formatNumber(missing, 3);
         document.getElementById('resKeyInCV').innerHTML = formatNumber(keyin, 3);
-        document.getElementById('resMissingProcess').innerText = `計算過程：((機械錶) ${meter} - (原UV) ${origUV}) × (FC) ${fc} = ${missing.toFixed(3)}`;
+        
+        // 恢復顯示計算過程
+        document.getElementById('resMissingProcess').innerHTML = `計算過程：((機械錶) ${formatNumber(meter, 3)} - (原UV) ${formatNumber(origUV, 3)}) × (FC) ${fc} = ${formatNumber(missing, 3)}`;
+        
         return { missing, keyin, fc, origCV, origUV, meter };
     }
 
@@ -205,7 +208,7 @@
         const keyin = origCV + missing;
         document.getElementById('editResMissing').innerHTML = formatNumber(missing, 3);
         document.getElementById('editResKeyIn').innerHTML = formatNumber(keyin, 3);
-        document.getElementById('editResProcess').innerText = `計算過程：((機械錶) ${meter} - (原UV) ${origUV}) × (FC) ${fc} = ${missing.toFixed(3)}`;
+        document.getElementById('editResProcess').innerHTML = `計算過程：((機械錶) ${formatNumber(meter, 3)} - (原UV) ${formatNumber(origUV, 3)}) × (FC) ${fc} = ${formatNumber(missing, 3)}`;
     }
 
     function updateCurrentRecord() {
