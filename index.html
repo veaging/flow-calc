@@ -2,283 +2,63 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>流量校正運算器</title>
-    
-    <!-- 📱 PWA 行動裝置專用基本設定 -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#0056b3">
-    
-    <!-- PWA 控制邏輯：自動生成安裝配置與啟動離線快取 -->
-    <script>
-        // 1. 動態產生 PWA 所需的 manifest.json 設定檔
-        const manifest = {
-            "name": "流量校正運算器",
-            "short_name": "流量校正",
-            "start_url": window.location.href,
-            "display": "standalone",
-            "background_color": "#f4f6f9",
-            "theme-color": "#0056b3",
-            "icons": [
-                {
-                    "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='%230056b3'><circle cx='50' cy='50' r='45'/><text x='50' y='58' font-size='26' fill='white' font-family='sans-serif' font-weight='bold' text-anchor='middle'>🧮</text></svg>",
-                    "sizes": "192x192",
-                    "type": "image/svg+xml"
-                },
-                {
-                    "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='%230056b3'><circle cx='50' cy='50' r='45'/><text x='50' y='58' font-size='26' fill='white' font-family='sans-serif' font-weight='bold' text-anchor='middle'>🧮</text></svg>",
-                    "sizes": "512x512",
-                    "type": "image/svg+xml"
-                }
-            ]
-        };
-        const stringManifest = JSON.stringify(manifest);
-        const blob = new Blob([stringManifest], {type: 'application/json'});
-        const manifestURL = URL.createObjectURL(blob);
-        const link = document.createElement('link');
-        link.rel = 'manifest';
-        link.href = manifestURL;
-        document.head.appendChild(link);
-
-        // 2. 註冊 Service Worker 實現真正的離線秒開功能
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                const swCode = `
-                    const CACHE_NAME = 'flow-calc-v1';
-                    const urlsToCache = [window.location.pathname];
-                    self.addEventListener('install', e => {
-                        e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache)));
-                    });
-                    self.addEventListener('fetch', e => {
-                        e.respondWith(caches.match(e.request).then(response => response || fetch(e.request)));
-                    });
-                `;
-                const swBlob = new Blob([swCode], {type: 'application/javascript'});
-                const swUrl = URL.createObjectURL(swBlob);
-                navigator.serviceWorker.register(swUrl).catch(err => console.log('PWA SW 註冊失敗', err));
-            });
-        }
-    </script>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>流量快速運算</title>
     <style>
-        :root {
-            --primary-color: #0056b3;
-            --success-color: #28a745;
-            --danger-color: #dc3545;
-            --bg-color: #f4f6f9;
-            --card-bg: #ffffff;
-        }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            margin: 0; 
-            padding: 15px; 
-            background-color: var(--bg-color); 
-            color: #333;
-            padding-bottom: 280px; /* 預留空間給底部固定鍵盤 */
-        }
-        h2 { text-align: center; color: #2c3e50; margin-top: 5px; margin-bottom: 15px; font-size: 20px; }
-        .card { background: var(--card-bg); padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 15px; }
-        
-        label { display: block; margin-top: 10px; font-weight: bold; color: #4a5568; font-size: 14px; }
-        
-        /* 一般文字輸入 */
-        .text-input { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; border: 1.5px solid #cbd5e0; border-radius: 8px; font-size: 16px; }
-        
-        /* 數值輸入框（唯讀） */
-        .num-input { 
-            width: 100%; 
-            padding: 12px; 
-            margin-top: 5px; 
-            box-sizing: border-box; 
-            border: 1.5px solid #cbd5e0; 
-            border-radius: 8px; 
-            font-size: 18px; 
-            background-color: #fff; 
-            cursor: pointer;
-            caret-color: transparent; 
-        }
-        .num-input.active {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.15);
-            background-color: #f0f7ff;
-        }
-        
-        /* 結果呈現區 */
-        .result-box { background: #f0f7ff; padding: 12px; border-radius: 8px; margin-top: 12px; border: 1px solid #d0e7ff; }
-        .result-title { font-size: 13px; color: #666; margin: 0; }
-        .result-val-missing { font-size: 18px; color: #e056fd; font-weight: bold; margin: 3px 0; }
-        .result-val-keyin { font-size: 24px; color: #0984e3; font-weight: bold; margin: 3px 0; }
-        
-        /* 🧮 直式運算專用排版 */
-        .calc-process-vertical { 
-            font-family: "Courier New", Courier, monospace, "Microsoft JhengHei"; 
-            font-size: 13px; 
-            color: #4a5568; 
-            margin-top: 8px; 
-            padding: 10px 12px; 
-            background-color: #edf2f7; 
-            border-left: 4px solid var(--primary-color); 
-            border-radius: 4px; 
-            line-height: 1.5;
-            white-space: pre; /* 保留空白與換行，完美對齊 */
-        }
-        
-        /* 按鈕 */
-        button { width: 100%; padding: 12px; margin-top: 10px; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; }
-        .btn-save { background-color: var(--success-color); color: white; margin-top: 15px; }
-        .btn-nav { background-color: #4a5568; color: white; }
-        .btn-delete { background-color: var(--danger-color); color: white; }
-        .btn-back { background-color: #718096; color: white; }
-        
-        /* 歷史記錄列表排版優化 */
-        .record-item { padding: 12px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
-        .record-info { display: flex; flex-direction: column; gap: 4px; }
-        
-        /* 最上面一排（時間與站別）的容器與字體設定 */
-        .record-header-row { display: flex; align-items: center; gap: 8px; }
-        .record-time-large { font-size: 15px; font-weight: bold; color: #2d3748; } /* 放大後的時間 */
-        .record-divider { color: #cbd5e0; font-size: 14px; } /* 間隔線 */
-        .record-station-large { font-size: 15px; font-weight: bold; color: #4a5568; } /* 站名 */
-        
-        .record-summary { font-size: 12px; color: #4a5568; }
-        .btn-edit-item { width: auto; padding: 5px 10px; margin: 0; font-size: 12px; background-color: var(--primary-color); color: white; }
-        
+        body { font-family: sans-serif; margin: 0; padding: 15px; background-color: #f4f4f9; color: #333; }
+        h2 { text-align: center; color: #2c3e50; }
+        .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        label { display: block; margin-top: 10px; font-weight: bold; }
+        input { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; }
+        .result-box { background: #e8f4fd; padding: 10px; border-radius: 5px; margin-top: 10px; font-weight: bold; color: #007bff; }
+        .calc-process { font-size: 13px; color: #666; font-weight: normal; margin-top: 5px; padding: 5px; background-color: #f8f9fa; border-left: 3px solid #007bff; border-radius: 3px; word-break: break-all; }
+        button { width: 100%; padding: 12px; margin-top: 15px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; }
+        .btn-save { background-color: #28a745; color: white; }
+        .btn-nav { background-color: #007bff; color: white; }
+        .btn-delete { background-color: #dc3545; color: white; }
+        .btn-back { background-color: #6c757d; color: white; }
+        .record-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         #historyView, #detailView { display: none; }
-        
-        /* 編輯詳情專用 */
-        .detail-input-group { margin-bottom: 10px; }
-        .detail-input-group label { margin-top: 3px; font-size: 13px; color: #555; }
-        
-        /* 📱 底部固定虛擬鍵盤 */
-        .keyboard-container {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: #d2d5db;
-            padding: 8px;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.15);
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 6px;
-            z-index: 9999;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-        .key {
-            background: #ffffff;
-            border: none;
-            border-radius: 5px;
-            height: 48px;
-            font-size: 20px;
-            font-weight: bold;
-            color: #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-            cursor: pointer;
-            padding: 0;
-            margin: 0;
-        }
-        .key:active {
-            background: #b0b5be;
-        }
-        .key.fn {
-            background: #a5abb6;
-            color: #000;
-        }
-        .key.done {
-            background: var(--primary-color);
-            color: white;
-        }
-        
-        /* PWA 提示下載專用小按鈕 */
-        #pwaInstallBtn { display: none; background-color: #ff9f43; color: white; margin-bottom: 10px; }
+        .detail-input-group { margin-bottom: 12px; }
+        .detail-input-group label { margin-top: 5px; font-size: 14px; color: #555; }
+        .detail-result { background: #fff3cd; color: #856404; border-left: 3px solid #ffc107; }
+        .million-tag { color: #dc3545; font-size: 0.85em; font-weight: bold; margin-left: 4px; }
     </style>
 </head>
 <body>
-
-<!-- 主計算畫面 -->
 <div id="calcView">
-    <h2>流量校正運算器</h2>
+    <h2>流量運算器</h2>
     <div class="card">
-        <!-- 如果系統判定可以下載，會自動浮現這個按鈕 -->
-        <button id="pwaInstallBtn">📲 安裝到手機桌面 (Web App)</button>
-
-        <label>站點資訊 (限10字 - 點擊用系統鍵盤)</label>
-        <input type="text" id="stationName" class="text-input" maxlength="10" placeholder="請輸入站點名稱" oninput="handleStationInput()">
-        
+        <label>站點資訊 (限10字)</label>
+        <input type="text" id="stationName" maxlength="10" placeholder="例如：A站點">
         <label>溫壓補償係數 (FC)</label>
-        <input type="text" id="fc" class="num-input" value="1" readonly onclick="setActiveInput(this)">
-        
-        <label>原 CV 值</label>
-        <input type="text" id="origCV" class="num-input" placeholder="點擊輸入 RTU 的原 CV" readonly onclick="setActiveInput(this)">
-        
-        <label>原 UV 值</label>
-        <input type="text" id="origUV" class="num-input" placeholder="點擊輸入 RTU 的原 UV" readonly onclick="setActiveInput(this)">
-        
+        <input type="number" id="fc" value="1" step="0.0001" placeholder="請輸入此站FC">
+        <label>原CV值</label>
+        <input type="number" id="origCV" step="0.001">
+        <label>原UV值</label>
+        <input type="number" id="origUV" step="0.001">
         <label>機械錶度數</label>
-        <input type="text" id="meterReading" class="num-input" placeholder="點擊輸入機械錶度數" readonly onclick="setActiveInput(this)">
-        
+        <input type="number" id="meterReading" step="0.001">
         <div class="result-box">
-            <p class="result-title">⚡ 未同步計量 CV 值 (補正量):</p>
-            <div class="result-val-missing"><span id="resMissingCV">0.000</span></div>
-            
-            <!-- 直式運算容器 -->
-            <div class="calc-process-vertical" id="resMissingProcess"></div>
-            
-            <p class="result-title" style="margin-top: 15px;">👉 校正後的 CV 值:</p>
-            <div class="result-val-keyin"><span id="resKeyInCV">0.000</span></div>
+            <p>缺少的CV值: <span id="resMissingCV">0</span></p>
+            <div class="calc-process" id="resMissingProcess">計算過程：((機械錶) 0 - (原UV) 0) × (FC) 1 = 0</div>
+            <p style="margin-top: 15px;">Key in的CV值: <span id="resKeyInCV">0</span></p>
         </div>
-        
-        <button class="btn-save" onclick="saveData()">💾 儲存記錄</button>
-        <button class="btn-nav" onclick="showHistory()">📂 查看歷史記錄</button>
+        <button class="btn-save" onclick="saveData()">儲存記錄</button>
+        <button class="btn-nav" onclick="showHistory()">查看記錄</button>
     </div>
 </div>
-
-<!-- 歷史記錄畫面 -->
 <div id="historyView">
     <h2>記錄列表</h2>
-    <div class="card" style="padding: 5px;">
-        <div id="historyList"></div>
-    </div>
-    <button class="btn-back" onclick="showCalc()">⬅️ 返回計算</button>
+    <div class="card" id="historyList"></div>
+    <button class="btn-back" onclick="showCalc()">返回計算</button>
 </div>
-
-<!-- 詳情與編輯畫面 -->
 <div id="detailView">
     <h2>記錄詳情與編輯</h2>
     <div class="card" id="detailContent"></div>
-    <button class="btn-save" onclick="updateCurrentRecord()">💾 儲存修改</button>
-    <button class="btn-delete" onclick="deleteCurrent()">🗑️ 刪除此筆記錄</button>
-    <button class="btn-back" onclick="showHistory()">⬅️ 返回列表</button>
-</div>
-
-<!-- 📱 網頁內建網頁虛擬數字鍵盤 -->
-<div class="keyboard-container" id="virtualKeyboard" style="display: none;">
-    <button class="key fn" onclick="pressKey('C')">C</button>
-    <button class="key fn" onclick="pressKey('±')">±</button>
-    <button class="key fn" onclick="pressKey('⌫')">⌫</button>
-    <button class="key fn" onclick="pressKey('NEXT')">下一欄</button>
-    
-    <button class="key" onclick="pressKey('7')">7</button>
-    <button class="key" onclick="pressKey('8')">8</button>
-    <button class="key" onclick="pressKey('9')">9</button>
-    <button class="key fn" onclick="pressKey('-')">-</button>
-    
-    <button class="key" onclick="pressKey('4')">4</button>
-    <button class="key" onclick="pressKey('5')">5</button>
-    <button class="key" onclick="pressKey('6')">6</button>
-    <button class="key fn" style="grid-row: span 2; height: 102px;" onclick="pressKey('DONE')">確定</button>
-    
-    <button class="key" onclick="pressKey('1')">1</button>
-    <button class="key" onclick="pressKey('2')">2</button>
-    <button class="key" onclick="pressKey('3')">3</button>
-    
-    <button class="key" style="grid-column: span 2;" onclick="pressKey('0')">0</button>
-    <button class="key" onclick="pressKey('.')">.</button>
+    <button class="btn-save" onclick="updateCurrentRecord()">儲存修改</button>
+    <button class="btn-delete" onclick="deleteCurrent()">刪除此筆記錄</button>
+    <button class="btn-back" onclick="showHistory()">返回列表</button>
 </div>
 
 <script>
@@ -289,106 +69,18 @@
         records = [];
     }
     let currentDetailIdx = -1;
-    let activeInputEl = null;
 
-    // PWA 安裝觸發
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        const installBtn = document.getElementById('pwaInstallBtn');
-        if (installBtn) installBtn.style.display = 'block';
-    });
-
-    document.getElementById('pwaInstallBtn').addEventListener('click', async () => {
-        if (!deferredPrompt) return;
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-            document.getElementById('pwaInstallBtn').style.display = 'none';
+    // 百萬標示與千分位格式化函式
+    function formatNumber(num, decimals = 3) {
+        if (isNaN(num)) return '0';
+        let formatted = Number(num).toLocaleString('zh-TW', {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals
+        });
+        if (Math.abs(num) >= 1000000) {
+            return `${formatted} <span class="million-tag">(百萬)</span>`;
         }
-        deferredPrompt = null;
-    });
-
-    // 設定當前選取的輸入欄位並開啟鍵盤
-    function setActiveInput(el) {
-        const actives = document.querySelectorAll('.num-input');
-        actives.forEach(item => item.classList.remove('active'));
-        
-        activeInputEl = el;
-        activeInputEl.classList.add('active');
-        document.getElementById('virtualKeyboard').style.display = 'grid';
-    }
-
-    // 關閉虛擬鍵盤
-    function hideKeyboard() {
-        const actives = document.querySelectorAll('.num-input');
-        actives.forEach(item => item.classList.remove('active'));
-        activeInputEl = null;
-        document.getElementById('virtualKeyboard').style.display = 'none';
-    }
-
-    // 虛擬鍵盤按鍵處理邏輯
-    function pressKey(key) {
-        if (!activeInputEl) return;
-        
-        let currentVal = activeInputEl.value;
-
-        if (key === 'C') {
-            activeInputEl.value = '';
-        } 
-        else if (key === '⌫') {
-            activeInputEl.value = currentVal.slice(0, -1);
-        } 
-        else if (key === '-') {
-            if (!currentVal.startsWith('-')) {
-                activeInputEl.value = '-' + currentVal;
-            }
-        }
-        else if (key === '±') {
-            if (currentVal.startsWith('-')) {
-                activeInputEl.value = currentVal.substring(1);
-            } else if (currentVal !== '') {
-                activeInputEl.value = '-' + currentVal;
-            }
-        } 
-        else if (key === '.') {
-            if (!currentVal.includes('.')) {
-                activeInputEl.value = currentVal + '.';
-            }
-        } 
-        else if (key === 'DONE') {
-            hideKeyboard();
-        } 
-        else if (key === 'NEXT') {
-            const inputs = Array.from(document.querySelectorAll('.num-input'));
-            const currentIndex = inputs.indexOf(activeInputEl);
-            if (currentIndex !== -1 && currentIndex < inputs.length - 1) {
-                setActiveInput(inputs[currentIndex + 1]);
-            } else {
-                hideKeyboard();
-            }
-        }
-        else {
-            activeInputEl.value = currentVal + key;
-        }
-
-        if (activeInputEl.id.startsWith('edit')) {
-            calcDetail();
-        } else {
-            calc();
-        }
-    }
-
-    function generateVerticalCalcText(meter, origUV, diff, fc, missing) {
-        return `直式運算過程：
-  機械錶度數：${meter.toFixed(3)}
-－原 UV 值 ：${origUV.toFixed(3)}
-───────────────────────
-  計量差額 ：${diff.toFixed(3)}
-× 補償 FC  ：${fc}
-───────────────────────
-＝未同步 CV ：${missing.toFixed(3)}`;
+        return formatted;
     }
 
     function calc() {
@@ -396,153 +88,110 @@
         const origCVEl = document.getElementById('origCV');
         const origUVEl = document.getElementById('origUV');
         const meterEl = document.getElementById('meterReading');
-
         if (!fcEl || !origCVEl || !origUVEl || !meterEl) return;
 
-        const fc = fcEl.value !== "" ? parseFloat(fcEl.value) : 1;
+        const fcInput = fcEl.value;
+        const fc = fcInput !== "" ? parseFloat(fcInput) : 1;
         const origCV = parseFloat(origCVEl.value) || 0;
         const origUV = parseFloat(origUVEl.value) || 0;
         const meter = parseFloat(meterEl.value) || 0;
+        const missing = (meter - origUV) * fc;
+        const keyin = origCV + missing;
 
-        const diff = meter - origUV;
-        const missing = parseFloat((diff * fc).toFixed(3));
-        const keyin = parseFloat((origCV + missing).toFixed(3));
-
-        document.getElementById('resMissingCV').innerText = missing.toFixed(3);
-        document.getElementById('resKeyInCV').innerText = keyin.toFixed(3);
-        
-        document.getElementById('resMissingProcess').innerText = generateVerticalCalcText(meter, origUV, diff, fc, missing);
-
+        document.getElementById('resMissingCV').innerHTML = formatNumber(missing, 3);
+        document.getElementById('resKeyInCV').innerHTML = formatNumber(keyin, 3);
+        document.getElementById('resMissingProcess').innerText = `計算過程：((機械錶) ${meter} - (原UV) ${origUV}) × (FC) ${fc} = ${missing.toFixed(3)}`;
         return { missing, keyin, fc, origCV, origUV, meter };
     }
 
-    function handleStationInput() {
-        const stationNameEl = document.getElementById('stationName');
-        const fcEl = document.getElementById('fc');
-        if (!stationNameEl || !fcEl) return;
+    const allInputs = document.getElementsByTagName('input');
+    for (let i = 0; i < allInputs.length; i++) {
+        allInputs[i].addEventListener('input', calc);
+    }
 
-        const name = stationNameEl.value.trim();
-        if (name) {
-            try {
-                const configs = JSON.parse(localStorage.getItem('stationConfigs') || '{}');
-                if (configs[name] !== undefined) {
-                    fcEl.value = configs[name];
-                } else {
+    const stationNameEl = document.getElementById('stationName');
+    if (stationNameEl) {
+        stationNameEl.addEventListener('input', function() {
+            const name = this.value.trim();
+            const fcEl = document.getElementById('fc');
+            if (name && fcEl) {
+                try {
+                    const configs = JSON.parse(localStorage.getItem('stationConfigs') || '{}');
+                    if (configs[name] !== undefined) {
+                        fcEl.value = configs[name];
+                    } else {
+                        fcEl.value = 1;
+                    }
+                } catch (e) {
                     fcEl.value = 1;
                 }
-            } catch (e) {
-                fcEl.value = 1;
+                calc();
             }
-            calc();
-        }
+        });
     }
 
     function saveData() {
-        hideKeyboard();
+        if (!confirm("確定要儲存這筆記錄嗎？")) return;
         const data = calc();
-        if (!data) return;
-
-        const stationName = document.getElementById('stationName').value.trim() || '未命名站點';
-        if (!confirm(`確定要儲存「${stationName}」這筆記錄嗎？`)) return;
-
         const now = new Date();
+        const stationName = document.getElementById('stationName').value.trim() || '未命名';
         const entry = {
             date: now.toLocaleString('zh-TW', { hour12: false }),
             station: stationName,
             ...data
         };
-        
         records.unshift(entry);
         if (records.length > 100) records.pop();
-
         try {
             localStorage.setItem('flowRecords', JSON.stringify(records));
-            if (stationName !== '未命名站點') {
+            if (stationName !== '未命名') {
                 const configs = JSON.parse(localStorage.getItem('stationConfigs') || '{}');
                 configs[stationName] = data.fc;
                 localStorage.setItem('stationConfigs', JSON.stringify(configs));
             }
         } catch (e) {
             alert("儲存至手機空間失敗。");
-            return;
         }
-
         alert("儲存成功！");
-        
-        document.getElementById('origCV').value = '';
-        document.getElementById('origUV').value = '';
-        document.getElementById('meterReading').value = '';
-        calc();
     }
 
     function showHistory() {
-        hideKeyboard();
         document.getElementById('calcView').style.display = 'none';
         document.getElementById('detailView').style.display = 'none';
         document.getElementById('historyView').style.display = 'block';
-        
         const list = document.getElementById('historyList');
-        list.innerHTML = records.length ? '' : '<p style="padding:15px; text-align:center; color:#999;">目前無歷史記錄</p>';
-        
+        list.innerHTML = records.length ? '' : '<p>無記錄</p>';
         records.forEach((r, idx) => {
             const div = document.createElement('div');
             div.className = 'record-item';
-            div.innerHTML = `
-                <div class="record-info">
-                    <div class="record-header-row">
-                        <span class="record-time-large">${r.date}</span>
-                        <span class="record-divider">|</span>
-                        <span class="record-station-large">${r.station}</span>
-                    </div>
-                    <span class="record-summary">未同步CV: <b>${r.missing.toFixed(3)}</b> ➔ 校正後CV: <b>${r.keyin.toFixed(3)}</b></span>
-                </div>
-                <button class="btn-edit-item" onclick="showDetail(${idx})">編輯</button>
-            `;
+            div.innerHTML = `<span>${r.date} - ${r.station}</span><button onclick="showDetail(${idx})">編輯/查看</button>`;
             list.appendChild(div);
         });
     }
 
     function showDetail(idx) {
-        hideKeyboard();
         currentDetailIdx = idx;
         const r = records[idx];
         document.getElementById('historyView').style.display = 'none';
         document.getElementById('detailView').style.display = 'block';
-        
         document.getElementById('detailContent').innerHTML = `
-            <p style="font-size: 13px; color:#718096; margin-top: 0;"><b>記錄時間:</b> ${r.date}</p>
-            <div class="detail-input-group">
-                <label>站點資訊 (用系統鍵盤)</label>
-                <input type="text" id="editStation" class="text-input" value="${r.station}" placeholder="請輸入站點名稱" maxlength="10">
-            </div>
-            <div class="detail-input-group">
-                <label>FC 係數</label>
-                <input type="text" id="editFC" class="num-input" value="${r.fc}" readonly onclick="setActiveInput(this)">
-            </div>
-            <div class="detail-input-group">
-                <label>RTU 的原 CV 值</label>
-                <input type="text" id="editOrigCV" class="num-input" value="${r.origCV}" placeholder="點擊輸入 RTU 的原 CV" readonly onclick="setActiveInput(this)">
-            </div>
-            <div class="detail-input-group">
-                <label>RTU 的原 UV 值</label>
-                <input type="text" id="editOrigUV" class="num-input" value="${r.origUV}" placeholder="點擊輸入 RTU 的原 UV" readonly onclick="setActiveInput(this)">
-            </div>
-            <div class="detail-input-group">
-                <label>機械錶度數</label>
-                <input type="text" id="editMeter" class="num-input" value="${r.meter}" readonly onclick="setActiveInput(this)">
-            </div>
-            
+            <p style="font-size: 14px; color:#666;"><b>記錄時間:</b> ${r.date}</p>
+            <div class="detail-input-group"><label>站點資訊</label><input type="text" id="editStation" value="${r.station}" maxlength="10"></div>
+            <div class="detail-input-group"><label>FC 係數</label><input type="number" id="editFC" value="${r.fc}" step="0.0001"></div>
+            <div class="detail-input-group"><label>原CV值</label><input type="number" id="editOrigCV" value="${r.origCV}" step="0.001"></div>
+            <div class="detail-input-group"><label>原UV值</label><input type="number" id="editOrigUV" value="${r.origUV}" step="0.001"></div>
+            <div class="detail-input-group"><label>機械錶度數</label><input type="number" id="editMeter" value="${r.meter}" step="0.001"></div>
             <div class="result-box detail-result">
-                <p class="result-title">⚡ 未同步計量 CV 值:</p>
-                <div class="result-val-missing"><span id="editResMissing">0.000</span></div>
-                
-                <div class="calc-process-vertical" id="editResProcess"></div>
-                
-                <p class="result-title" style="margin-top: 10px;">👉 校正後的 CV 值:</p>
-                <div class="result-val-keyin"><span id="editResKeyIn">0.000</span></div>
+                <p>缺少的CV值: <span id="editResMissing">0</span></p>
+                <div class="calc-process" id="editResProcess">計算過程：...</div>
+                <p style="margin-top: 10px;">Key in的CV值: <span id="editResKeyIn">0</span></p>
             </div>
         `;
-
+        const ids = ['editStation', 'editFC', 'editOrigCV', 'editOrigUV', 'editMeter'];
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('input', calcDetail);
+        });
         calcDetail();
     }
 
@@ -552,60 +201,47 @@
         const origCV = parseFloat(document.getElementById('editOrigCV').value) || 0;
         const origUV = parseFloat(document.getElementById('editOrigUV').value) || 0;
         const meter = parseFloat(document.getElementById('editMeter').value) || 0;
-        
-        const diff = meter - origUV;
-        const missing = parseFloat(((meter - origUV) * fc).toFixed(3));
-        const keyin = parseFloat((origCV + missing).toFixed(3));
-
-        document.getElementById('editResMissing').innerText = missing.toFixed(3);
-        document.getElementById('editResKeyIn').innerText = keyin.toFixed(3);
-        
-        document.getElementById('editResProcess').innerText = generateVerticalCalcText(meter, origUV, diff, fc, missing);
+        const missing = (meter - origUV) * fc;
+        const keyin = origCV + missing;
+        document.getElementById('editResMissing').innerHTML = formatNumber(missing, 3);
+        document.getElementById('editResKeyIn').innerHTML = formatNumber(keyin, 3);
+        document.getElementById('editResProcess').innerText = `計算過程：((機械錶) ${meter} - (原UV) ${origUV}) × (FC) ${fc} = ${missing.toFixed(3)}`;
     }
 
     function updateCurrentRecord() {
-        hideKeyboard();
         if (!confirm("確定要儲存此次修改嗎？")) return;
-        
         const fcInput = document.getElementById('editFC').value;
         const fc = fcInput !== "" ? parseFloat(fcInput) : 1;
         const origCV = parseFloat(document.getElementById('editOrigCV').value) || 0;
         const origUV = parseFloat(document.getElementById('editOrigUV').value) || 0;
         const meter = parseFloat(document.getElementById('editMeter').value) || 0;
-        const station = document.getElementById('editStation').value.trim() || '未命名站點';
+        const station = document.getElementById('editStation').value.trim() || '未命名';
+        const missing = (meter - origUV) * fc;
+        const keyin = origCV + missing;
 
-        const missing = parseFloat(((meter - origUV) * fc).toFixed(3));
-        const keyin = parseFloat((origCV + missing).toFixed(3));
-
-        records[currentDetailIdx] = {
-            ...records[currentDetailIdx],
-            station,
-            fc,
-            origCV,
-            origUV,
-            meter,
-            missing,
-            keyin
-        };
+        records[currentDetailIdx].station = station;
+        records[currentDetailIdx].fc = fc;
+        records[currentDetailIdx].origCV = origCV;
+        records[currentDetailIdx].origUV = origUV;
+        records[currentDetailIdx].meter = meter;
+        records[currentDetailIdx].missing = missing;
+        records[currentDetailIdx].keyin = keyin;
 
         try {
             localStorage.setItem('flowRecords', JSON.stringify(records));
-            if (station !== '未命名站點') {
+            if (station !== '未命名') {
                 const configs = JSON.parse(localStorage.getItem('stationConfigs') || '{}');
                 configs[station] = fc;
                 localStorage.setItem('stationConfigs', JSON.stringify(configs));
             }
         } catch (e) {
             alert("儲存失敗。");
-            return;
         }
-
         alert("修改已儲存！");
         showHistory();
     }
 
     function deleteCurrent() {
-        hideKeyboard();
         if (!confirm("確定要刪除這筆記錄嗎？")) return;
         records.splice(currentDetailIdx, 1);
         try {
@@ -615,18 +251,11 @@
     }
 
     function showCalc() {
-        hideKeyboard();
         document.getElementById('calcView').style.display = 'block';
         document.getElementById('historyView').style.display = 'none';
         document.getElementById('detailView').style.display = 'none';
         calc();
     }
-
-    document.addEventListener('click', function(e) {
-        if (!e.target.classList.contains('num-input') && !e.target.closest('#virtualKeyboard')) {
-            hideKeyboard();
-        }
-    }, true);
 
     calc();
 </script>
