@@ -11,7 +11,26 @@
         label { display: block; margin-top: 10px; font-weight: bold; }
         input { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; }
         .result-box { background: #e8f4fd; padding: 10px; border-radius: 5px; margin-top: 10px; font-weight: bold; color: #007bff; }
-        .calc-process { font-size: 13px; color: #666; font-weight: normal; margin-top: 5px; padding: 5px; background-color: #f8f9fa; border-left: 3px solid #007bff; border-radius: 3px; word-break: break-all; }
+        
+        /* 直式運算專用樣式 */
+        .vertical-calc { 
+            font-family: monospace; 
+            font-size: 14px; 
+            color: #333; 
+            background-color: #f8f9fa; 
+            border-left: 3px solid #007bff; 
+            border-radius: 5px; 
+            padding: 10px; 
+            margin-top: 8px; 
+            display: inline-block;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .v-row { display: flex; justify-content: space-between; margin: 2px 0; }
+        .v-line { border-top: 1.5px solid #333; margin: 4px 0; }
+        .v-label { color: #666; font-weight: normal; }
+        .v-val { font-weight: bold; }
+
         button { width: 100%; padding: 12px; margin-top: 15px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; }
         .btn-save { background-color: #28a745; color: white; }
         .btn-nav { background-color: #007bff; color: white; }
@@ -40,9 +59,10 @@
         <label>機械錶度數</label>
         <input type="number" id="meterReading" step="0.001">
         <div class="result-box">
-            <p>缺少的CV值: <span id="resMissingCV">0</span></p>
-            <div class="calc-process" id="resMissingProcess">計算過程：((機械錶) 0 - (原UV) 0) × (FC) 1 = 0</div>
-            <p style="margin-top: 15px;">Key in的CV值: <span id="resKeyInCV">0</span></p>
+            <p style="margin:0 0 5px 0;">計算過程（直式）：</p>
+            <div class="vertical-calc" id="resMissingProcess"></div>
+            <p style="margin-top: 15px;">缺少的CV值: <span id="resMissingCV">0</span></p>
+            <p style="margin-top: 10px;">Key in的CV值: <span id="resKeyInCV">0</span></p>
         </div>
         <button class="btn-save" onclick="saveData()">儲存記錄</button>
         <button class="btn-nav" onclick="showHistory()">查看記錄</button>
@@ -83,6 +103,19 @@
         return formatted;
     }
 
+    // 產生直式 HTML 內容
+    function generateVerticalHTML(meter, origUV, diff, fc, missing) {
+        return `
+            <div class="v-row"><span class="v-label">&nbsp;&nbsp;機械錶：</span><span class="v-val">${formatNumber(meter, 3)}</span></div>
+            <div class="v-row"><span class="v-label">－原UV值：</span><span class="v-val">${formatNumber(origUV, 3)}</span></div>
+            <div class="v-line"></div>
+            <div class="v-row"><span class="v-label">&nbsp;&nbsp;度數差：</span><span class="v-val">${formatNumber(diff, 3)}</span></div>
+            <div class="v-row"><span class="v-label">× FC係數：</span><span class="v-val">${fc}</span></div>
+            <div class="v-line"></div>
+            <div class="v-row"><span class="v-label">&nbsp;&nbsp;缺少CV：</span><span class="v-val" style="color:#007bff;">${formatNumber(missing, 3)}</span></div>
+        `;
+    }
+
     function calc() {
         const fcEl = document.getElementById('fc');
         const origCVEl = document.getElementById('origCV');
@@ -95,14 +128,16 @@
         const origCV = parseFloat(origCVEl.value) || 0;
         const origUV = parseFloat(origUVEl.value) || 0;
         const meter = parseFloat(meterEl.value) || 0;
-        const missing = (meter - origUV) * fc;
+        
+        const diff = meter - origUV;
+        const missing = diff * fc;
         const keyin = origCV + missing;
 
         document.getElementById('resMissingCV').innerHTML = formatNumber(missing, 3);
         document.getElementById('resKeyInCV').innerHTML = formatNumber(keyin, 3);
         
-        // 恢復顯示計算過程
-        document.getElementById('resMissingProcess').innerHTML = `計算過程：((機械錶) ${formatNumber(meter, 3)} - (原UV) ${formatNumber(origUV, 3)}) × (FC) ${fc} = ${formatNumber(missing, 3)}`;
+        // 渲染標準直式運算
+        document.getElementById('resMissingProcess').innerHTML = generateVerticalHTML(meter, origUV, diff, fc, missing);
         
         return { missing, keyin, fc, origCV, origUV, meter };
     }
@@ -185,8 +220,9 @@
             <div class="detail-input-group"><label>原UV值</label><input type="number" id="editOrigUV" value="${r.origUV}" step="0.001"></div>
             <div class="detail-input-group"><label>機械錶度數</label><input type="number" id="editMeter" value="${r.meter}" step="0.001"></div>
             <div class="result-box detail-result">
-                <p>缺少的CV值: <span id="editResMissing">0</span></p>
-                <div class="calc-process" id="editResProcess">計算過程：...</div>
+                <p style="margin:0 0 5px 0;">計算過程（直式）：</p>
+                <div class="vertical-calc" id="editResProcess"></div>
+                <p style="margin-top: 15px;">缺少的CV值: <span id="editResMissing">0</span></p>
                 <p style="margin-top: 10px;">Key in的CV值: <span id="editResKeyIn">0</span></p>
             </div>
         `;
@@ -204,11 +240,14 @@
         const origCV = parseFloat(document.getElementById('editOrigCV').value) || 0;
         const origUV = parseFloat(document.getElementById('editOrigUV').value) || 0;
         const meter = parseFloat(document.getElementById('editMeter').value) || 0;
-        const missing = (meter - origUV) * fc;
+        
+        const diff = meter - origUV;
+        const missing = diff * fc;
         const keyin = origCV + missing;
+
         document.getElementById('editResMissing').innerHTML = formatNumber(missing, 3);
         document.getElementById('editResKeyIn').innerHTML = formatNumber(keyin, 3);
-        document.getElementById('editResProcess').innerHTML = `計算過程：((機械錶) ${formatNumber(meter, 3)} - (原UV) ${formatNumber(origUV, 3)}) × (FC) ${fc} = ${formatNumber(missing, 3)}`;
+        document.getElementById('editResProcess').innerHTML = generateVerticalHTML(meter, origUV, diff, fc, missing);
     }
 
     function updateCurrentRecord() {
