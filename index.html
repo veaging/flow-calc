@@ -47,7 +47,7 @@
         .btn-nav { background-color: #007bff; color: white; }
         .btn-delete { background-color: #dc3545; color: white; }
         .btn-back { background-color: #6c757d; color: white; }
-        .record-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .record-item { padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         #historyView, #detailView { display: none; }
         .detail-input-group { margin-bottom: 12px; }
         .detail-input-group label { margin-top: 5px; font-size: 14px; color: #555; }
@@ -110,7 +110,7 @@
     }
     let currentDetailIdx = -1;
 
-    // 修改後的格式化函式：僅百萬位數以上變紅，百萬以下維持原色
+    // 格式化函式：僅百萬位數以上變紅，百萬以下維持原色
     function formatNumber(num, decimals = 3) {
         if (isNaN(num)) return '0';
         let formatted = Number(num).toLocaleString('zh-TW', {
@@ -231,7 +231,13 @@
         records.forEach((r, idx) => {
             const div = document.createElement('div');
             div.className = 'record-item';
-            div.innerHTML = `<span>${r.date} - ${r.station}</span><button onclick="showDetail(${idx})">編輯/查看</button>`;
+            div.innerHTML = `
+                <div>
+                    <div style="font-size: 13px; color: #666;">${r.date}</div>
+                    <div style="font-weight: bold; font-size: 15px; margin-top: 3px; color: #2c3e50;">${r.station}</div>
+                </div>
+                <button onclick="showDetail(${idx})" style="width: auto; padding: 6px 12px; margin: 0; background-color: #007bff; color: white;">編輯/查看</button>
+            `;
             list.appendChild(div);
         });
     }
