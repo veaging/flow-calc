@@ -52,7 +52,9 @@
         .detail-input-group { margin-bottom: 12px; }
         .detail-input-group label { margin-top: 5px; font-size: 14px; color: #555; }
         .detail-result { background: #fff3cd; color: #856404; border-left: 3px solid #ffc107; }
-        .million-tag { color: #dc3545; font-size: 0.85em; font-weight: bold; margin-left: 4px; }
+        
+        /* 僅百萬位數以上顯示紅色的樣式 */
+        .million-num { color: #dc3545 !important; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -108,15 +110,21 @@
     }
     let currentDetailIdx = -1;
 
-    // 百萬標示與千分位格式化函式
+    // 修改後的格式化函式：僅百萬位數以上變紅，百萬以下維持原色
     function formatNumber(num, decimals = 3) {
         if (isNaN(num)) return '0';
         let formatted = Number(num).toLocaleString('zh-TW', {
             minimumFractionDigits: decimals,
             maximumFractionDigits: decimals
         });
+        
         if (Math.abs(num) >= 1000000) {
-            return `${formatted} <span class="million-tag">(百萬)</span>`;
+            let parts = formatted.split(',');
+            if (parts.length >= 3) {
+                let millionPart = parts.slice(0, parts.length - 2).join(',') + ',';
+                let restPart = parts.slice(parts.length - 2).join(',');
+                return `<span class="million-num">${millionPart}</span>${restPart}`;
+            }
         }
         return formatted;
     }
