@@ -29,7 +29,18 @@
         .v-row { display: flex; justify-content: space-between; margin: 3px 0; }
         .v-line { border-top: 1.5px solid #333; margin: 6px 0; }
         .v-label { color: #555; font-weight: normal; }
-        .v-val { font-weight: bold; }
+        .v-val { font-weight: bold; text-align: right; }
+
+        /* 直式下方結果欄位對齊樣式 */
+        .result-row { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-top: 10px; 
+            font-family: monospace; 
+        }
+        .result-label { font-weight: bold; }
+        .result-val { text-align: right; font-weight: bold; }
 
         button { width: 100%; padding: 12px; margin-top: 15px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; }
         .btn-save { background-color: #28a745; color: white; }
@@ -61,8 +72,15 @@
         <div class="result-box">
             <p style="margin:0 0 5px 0;">計算過程（直式）：</p>
             <div class="vertical-calc" id="resMissingProcess"></div>
-            <p style="margin-top: 15px;">計算後的CV差值: <span id="resMissingCV">0</span></p>
-            <p style="margin-top: 10px;">需輸入的CV新值: <span id="resKeyInCV">0</span></p>
+            
+            <div class="result-row" style="margin-top: 15px;">
+                <span class="result-label">計算後的CV差值：</span>
+                <span id="resMissingCV" class="result-val">0</span>
+            </div>
+            <div class="result-row">
+                <span class="result-label">需輸入的CV新值：</span>
+                <span id="resKeyInCV" class="result-val">0</span>
+            </div>
         </div>
         <button class="btn-save" onclick="saveData()">儲存記錄</button>
         <button class="btn-nav" onclick="showHistory()">查看記錄</button>
@@ -103,7 +121,7 @@
         return formatted;
     }
 
-    // 產生直式 HTML 內容（已補上 CV 差值與需輸入 CV 新值）
+    // 產生直式 HTML 內容
     function generateVerticalHTML(meter, origUV, diff, fc, missing, origCV, keyin) {
         return `
             <div class="v-row"><span class="v-label">&nbsp;&nbsp;機械錶：</span><span class="v-val">${formatNumber(meter, 3)}</span></div>
@@ -225,8 +243,14 @@
             <div class="result-box detail-result">
                 <p style="margin:0 0 5px 0;">計算過程（直式）：</p>
                 <div class="vertical-calc" id="editResProcess"></div>
-                <p style="margin-top: 15px;">計算後的CV差值: <span id="editResMissing">0</span></p>
-                <p style="margin-top: 10px;">需輸入的CV新值: <span id="editResKeyIn">0</span></p>
+                <div class="result-row" style="margin-top: 15px;">
+                    <span class="result-label">計算後的CV差值：</span>
+                    <span id="editResMissing" class="result-val">0</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">需輸入的CV新值：</span>
+                    <span id="editResKeyIn" class="result-val">0</span>
+                </div>
             </div>
         `;
         const ids = ['editStation', 'editFC', 'editOrigCV', 'editOrigUV', 'editMeter'];
