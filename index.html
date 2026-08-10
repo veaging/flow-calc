@@ -26,9 +26,9 @@
             width: 100%;
             box-sizing: border-box;
         }
-        .v-row { display: flex; justify-content: space-between; margin: 2px 0; }
-        .v-line { border-top: 1.5px solid #333; margin: 4px 0; }
-        .v-label { color: #666; font-weight: normal; }
+        .v-row { display: flex; justify-content: space-between; margin: 3px 0; }
+        .v-line { border-top: 1.5px solid #333; margin: 6px 0; }
+        .v-label { color: #555; font-weight: normal; }
         .v-val { font-weight: bold; }
 
         button { width: 100%; padding: 12px; margin-top: 15px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; }
@@ -103,8 +103,8 @@
         return formatted;
     }
 
-    // 產生直式 HTML 內容
-    function generateVerticalHTML(meter, origUV, diff, fc, missing) {
+    // 產生直式 HTML 內容（已補上 CV 差值與需輸入 CV 新值）
+    function generateVerticalHTML(meter, origUV, diff, fc, missing, origCV, keyin) {
         return `
             <div class="v-row"><span class="v-label">&nbsp;&nbsp;機械錶：</span><span class="v-val">${formatNumber(meter, 3)}</span></div>
             <div class="v-row"><span class="v-label">－原UV值：</span><span class="v-val">${formatNumber(origUV, 3)}</span></div>
@@ -112,7 +112,10 @@
             <div class="v-row"><span class="v-label">&nbsp;&nbsp;度數差：</span><span class="v-val">${formatNumber(diff, 3)}</span></div>
             <div class="v-row"><span class="v-label">× FC係數：</span><span class="v-val">${fc}</span></div>
             <div class="v-line"></div>
-            <div class="v-row"><span class="v-label">&nbsp;&nbsp;計算後的CV差值：</span><span class="v-val" style="color:#007bff;">${formatNumber(missing, 3)}</span></div>
+            <div class="v-row"><span class="v-label">＝CV差值：</span><span class="v-val" style="color:#007bff;">${formatNumber(missing, 3)}</span></div>
+            <div class="v-row"><span class="v-label">＋原CV值：</span><span class="v-val">${formatNumber(origCV, 3)}</span></div>
+            <div class="v-line"></div>
+            <div class="v-row"><span class="v-label">＝需輸入CV新值：</span><span class="v-val" style="color:#28a745;">${formatNumber(keyin, 3)}</span></div>
         `;
     }
 
@@ -136,8 +139,8 @@
         document.getElementById('resMissingCV').innerHTML = formatNumber(missing, 3);
         document.getElementById('resKeyInCV').innerHTML = formatNumber(keyin, 3);
         
-        // 渲染標準直式運算
-        document.getElementById('resMissingProcess').innerHTML = generateVerticalHTML(meter, origUV, diff, fc, missing);
+        // 渲染完整直式運算
+        document.getElementById('resMissingProcess').innerHTML = generateVerticalHTML(meter, origUV, diff, fc, missing, origCV, keyin);
         
         return { missing, keyin, fc, origCV, origUV, meter };
     }
@@ -247,7 +250,7 @@
 
         document.getElementById('editResMissing').innerHTML = formatNumber(missing, 3);
         document.getElementById('editResKeyIn').innerHTML = formatNumber(keyin, 3);
-        document.getElementById('editResProcess').innerHTML = generateVerticalHTML(meter, origUV, diff, fc, missing);
+        document.getElementById('editResProcess').innerHTML = generateVerticalHTML(meter, origUV, diff, fc, missing, origCV, keyin);
     }
 
     function updateCurrentRecord() {
